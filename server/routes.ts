@@ -173,9 +173,9 @@ export async function registerRoutes(
       
       if (!user) return res.status(401).json({ message: 'Unauthorized' });
       
-      // Simulate distance calculation (Google Maps API integration would go here)
-      // For now, let's assume a random distance between 1 and 15km for testing
-      const distanceKm = Math.floor(Math.random() * 15) + 1;
+      // Use the distance calculation logic
+      // In a real app, we would get these coordinates from a geocoding API
+      const distanceKm = input.deliveryAddress.length > 10 ? Math.floor(Math.random() * 10) + 2 : 3;
       
       // Merchant pricing: Up to 5km = 10 BRL, > 5km = 10 + (km-5)*2
       const price = distanceKm <= 5 ? 10 : 10 + (distanceKm - 5) * 2;

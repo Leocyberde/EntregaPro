@@ -13,16 +13,17 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Truck, Plus, Search, Loader2, User, Settings } from "lucide-react";
+import { Package, MapPin, Truck, Plus, Search, Loader2, User, Settings, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { api } from "@shared/routes";
+import { calcularDistancia, calcularValorCorrida } from "@/services/distancia";
 
 const formSchema = insertOrderSchema.extend({
-  price: z.number().default(10), // Fixed price for now or handled in UI
+  price: z.number().default(10),
 });
 
 export default function Dashboard() {
@@ -44,6 +45,36 @@ export default function Dashboard() {
       price: 10,
     },
   });
+
+  // Novos estados para cálculo
+  const [distanciaEstimada, setDistanciaEstimada] = useState<number | null>(null);
+  const [valorEstimado, setValorEstimado] = useState<number | null>(null);
+
+  // Simulação de geocodificação simplificada para o exemplo
+  // Em produção, aqui usaria Google Maps Geocoding
+  const simularCalculoRota = (endereco: string) => {
+    if (!endereco || endereco.length < 5) {
+      setDistanciaEstimada(null);
+      setValorEstimado(null);
+      return;
+    }
+
+    // Mock de coordenadas baseadas no endereço para demonstração
+    // Gera coordenadas aleatórias "perto" uma da outra
+    const latOrigem = -23.5505;
+    const lonOrigem = -46.6333;
+    
+    // Gera um destino aleatório entre 1km e 15km
+    const latDestino = latOrigem + (Math.random() * 0.1 - 0.05);
+    const lonDestino = lonOrigem + (Math.random() * 0.1 - 0.05);
+
+    const dist = calcularDistancia(latOrigem, lonOrigem, latDestino, lonDestino);
+    const val = calcularValorCorrida(dist);
+
+    setDistanciaEstimada(dist);
+    setValorEstimado(val);
+    form.setValue("price", Math.round(val));
+  };
 
   // Update collection address when user data is available
   useEffect(() => {
@@ -205,13 +236,33 @@ export default function Dashboard() {
                         <FormControl>
                           <div className="relative">
                             <Truck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Av. B, 456 - Bairro" {...field} className="pl-9" />
+                            <Input 
+                              placeholder="Av. B, 456 - Bairro" 
+                              {...field} 
+                              className="pl-9" 
+                              onBlur={(e) => simularCalculoRota(e.target.value)}
+                            />
                           </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {distanciaEstimada !== null && (
+                    <div className="bg-primary/5 border border-primary/20 p-3 rounded-md animate-in slide-in-from-top-2 duration-300">
+                      <div className="flex items-center gap-2 text-primary font-semibold mb-1">
+                        <Calculator className="w-4 h-4" />
+                        <span>Estimativa de Rota</span>
+                      </div>
+                      <div className="grid grid-cols-2 text-sm">
+                        <span className="text-muted-foreground">Distância:</span>
+                        <span className="font-medium text-right">{distanciaEstimada.toFixed(2)} km</span>
+                        <span className="text-muted-foreground">Valor Estimado:</span>
+                        <span className="font-bold text-right text-primary">R$ {valorEstimado?.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
