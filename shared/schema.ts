@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -5,9 +6,13 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
+  username: text("username").notNull().unique(), // This will be the CPF for login
   password: text("password").notNull(),
   credits: integer("credits").notNull().default(0),
+  cnpjOrCpf: text("cnpj_or_cpf").notNull(),
+  phone: text("phone").notNull(), // WhatsApp/Call
+  storeName: text("store_name").notNull(),
+  storeAddress: text("store_address").notNull(),
 });
 
 export const orders = pgTable("orders", {
@@ -17,7 +22,9 @@ export const orders = pgTable("orders", {
   deliveryAddress: text("delivery_address").notNull(),
   packageDetails: text("package_details").notNull(),
   status: text("status").notNull().default('pending'), // pending, accepted, picked_up, delivered
-  price: integer("price").notNull(),
+  price: integer("price").notNull(), // Price charged to merchant (in cents/credits)
+  driverPrice: integer("driver_price").notNull(), // Price paid to driver (in cents/credits)
+  distanceKm: integer("distance_km"), // Calculated distance
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -51,8 +58,11 @@ export const depositsRelations = relations(deposits, ({ one }) => ({
   }),
 }));
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, credits: true });
-export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, merchantId: true, status: true, createdAt: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, credits: true }).extend({
+  username: z.string().min(11, "CPF deve ter pelo menos 11 dígitos"),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+});
+export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, merchantId: true, status: true, createdAt: true, driverPrice: true, price: true, distanceKm: true });
 export const insertDepositSchema = createInsertSchema(deposits).omit({ id: true, merchantId: true, status: true, pixQrCode: true, pixPayload: true, createdAt: true });
 
 export type User = typeof users.$inferSelect;

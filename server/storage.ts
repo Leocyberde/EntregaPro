@@ -9,7 +9,7 @@ export interface IStorage {
   updateUserCredits(id: number, credits: number): Promise<User>;
 
   getOrders(merchantId: number): Promise<Order[]>;
-  createOrder(order: InsertOrder & { merchantId: number }): Promise<Order>;
+  createOrder(order: InsertOrder & { merchantId: number; price: number; driverPrice: number; distanceKm?: number }): Promise<Order>;
   updateOrderStatus(id: number, status: string): Promise<Order>;
 
   getDeposits(merchantId: number): Promise<Deposit[]>;
@@ -46,7 +46,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(orders).where(eq(orders.merchantId, merchantId));
   }
 
-  async createOrder(order: InsertOrder & { merchantId: number }): Promise<Order> {
+  async createOrder(order: InsertOrder & { merchantId: number; price: number; driverPrice: number; distanceKm?: number }): Promise<Order> {
     const [newOrder] = await db.insert(orders).values(order).returning();
     return newOrder;
   }

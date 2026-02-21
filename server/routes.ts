@@ -57,7 +57,7 @@ export async function registerRoutes(
     try {
       const input = api.auth.register.input.parse(req.body);
       const existing = await storage.getUserByUsername(input.username);
-      if (existing) return res.status(400).json({ message: 'Username taken' });
+      if (existing) return res.status(400).json({ message: 'Username (CPF) already taken' });
       
       const user = await storage.createUser(input);
       req.login(user, (err) => {
@@ -119,7 +119,6 @@ export async function registerRoutes(
   });
 
   app.post(api.deposits.webhook.path, requireAuth, async (req, res) => {
-    // Simulated webhook endpoint for development
     try {
       const input = api.deposits.webhook.input.parse(req.body);
       const deposit = await storage.getDeposit(input.id);
@@ -128,7 +127,6 @@ export async function registerRoutes(
         return res.status(200).json({ message: 'Ok' });
       }
 
-      // Check if it belongs to user (just for dev simulation security)
       if (deposit.merchantId !== (req.user as any).id) {
          return res.status(401).json({ message: 'Unauthorized' });
       }
@@ -154,16 +152,33 @@ export async function registerRoutes(
       
       if (!user) return res.status(401).json({ message: 'Unauthorized' });
       
-      if (user.credits < input.price) {
+      // Simulate distance calculation (Google Maps API integration would go here)
+      // For now, let's assume a random distance between 1 and 15km for testing
+      const distanceKm = Math.floor(Math.random() * 15) + 1;
+      
+      // Merchant pricing: Up to 5km = 10 BRL, > 5km = 10 + (km-5)*2
+      const price = distanceKm <= 5 ? 10 : 10 + (distanceKm - 5) * 2;
+      
+      // Driver pricing: Up to 5km = 8 BRL, > 5km = 8 + (km-5)*1.5
+      const driverPrice = distanceKm <= 5 ? 8 : 8 + (distanceKm - 5) * 1.5;
+
+      // Ensure price and driverPrice are converted to cents/credits (assuming 1 credit = 1 BRL)
+      const priceInCredits = price;
+      const driverPriceInCredits = driverPrice;
+
+      if (user.credits < priceInCredits) {
         return res.status(402).json({ message: 'Insufficient credits. Please deposit more.' });
       }
 
       // Deduct credits
-      await storage.updateUserCredits(user.id, user.credits - input.price);
+      await storage.updateUserCredits(user.id, user.credits - priceInCredits);
 
       const order = await storage.createOrder({
         ...input,
-        merchantId: user.id
+        merchantId: user.id,
+        price: priceInCredits,
+        driverPrice: driverPriceInCredits,
+        distanceKm
       });
 
       res.status(201).json(order);
