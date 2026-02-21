@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import Dashboard from "@/pages/dashboard";
 import WalletPage from "@/pages/wallet";
 import AuthPage from "@/pages/auth";
+import TesteRotaScreen from "@/screens/TesteRotaScreen";
 import NotFound from "@/pages/not-found";
 
 // Protected Route Wrapper
@@ -46,6 +47,9 @@ function Router() {
       </Route>
       <Route path="/wallet">
         <ProtectedRoute component={WalletPage} />
+      </Route>
+      <Route path="/teste-rota">
+        <ProtectedRoute component={TesteRotaScreen} />
       </Route>
       
       <Route component={NotFound} />
