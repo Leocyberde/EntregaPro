@@ -50,30 +50,63 @@ export default function Dashboard() {
   const [distanciaEstimada, setDistanciaEstimada] = useState<number | null>(null);
   const [valorEstimado, setValorEstimado] = useState<number | null>(null);
 
-  // Simulação de geocodificação simplificada para o exemplo
-  // Em produção, aqui usaria Google Maps Geocoding
-  const simularCalculoRota = (endereco: string) => {
-    if (!endereco || endereco.length < 5) {
+  // Geocodificação real usando Nominatim e cálculo de rota via OSRM
+  const calcularRotaReal = async (enderecoDestino: string) => {
+    const enderecoOrigem = form.getValues("collectionAddress");
+    
+    if (!enderecoDestino || enderecoDestino.length < 5 || !enderecoOrigem) {
       setDistanciaEstimada(null);
       setValorEstimado(null);
       return;
     }
 
-    // Mock de coordenadas baseadas no endereço para demonstração
-    // Gera coordenadas aleatórias "perto" uma da outra
-    const latOrigem = -23.5505;
-    const lonOrigem = -46.6333;
-    
-    // Gera um destino aleatório entre 1km e 15km
-    const latDestino = latOrigem + (Math.random() * 0.1 - 0.05);
-    const lonDestino = lonOrigem + (Math.random() * 0.1 - 0.05);
+    try {
+      // 1. Geocodificar Origem
+      const respOrigem = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(enderecoOrigem)}&limit=1`, {
+        headers: { "User-Agent": "EntregaPro-App" }
+      });
+      const dataOrigem = await respOrigem.json();
+      
+      // 2. Geocodificar Destino
+      const respDestino = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(enderecoDestino)}&limit=1`, {
+        headers: { "User-Agent": "EntregaPro-App" }
+      });
+      const dataDestino = await respDestino.json();
 
-    const dist = calcularDistancia(latOrigem, lonOrigem, latDestino, lonDestino);
-    const val = calcularValorCorrida(dist);
+      if (dataOrigem.length > 0 && dataDestino.length > 0) {
+        const lat1 = dataOrigem[0].lat;
+        const lon1 = dataOrigem[0].lon;
+        const lat2 = dataDestino[0].lat;
+        const lon2 = dataDestino[0].lon;
 
-    setDistanciaEstimada(dist);
-    setValorEstimado(val);
-    form.setValue("price", Math.round(val));
+        // 3. Calcular Rota Real via OSRM
+        const respRota = await fetch(`https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`);
+        const dataRota = await respRota.json();
+
+        if (dataRota.code === "Ok" && dataRota.routes.length > 0) {
+          const distKm = dataRota.routes[0].distance / 1000;
+          const val = calcularValorCorrida(distKm);
+
+          setDistanciaEstimada(distKm);
+          setValorEstimado(val);
+          form.setValue("price", Math.round(val));
+        } else {
+          // Fallback para Haversine se OSRM falhar
+          const distHaversine = calcularDistancia(Number(lat1), Number(lon1), Number(lat2), Number(lon2));
+          const val = calcularValorCorrida(distHaversine);
+          setDistanciaEstimada(distHaversine);
+          setValorEstimado(val);
+          form.setValue("price", Math.round(val));
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao calcular rota:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro no cálculo",
+        description: "Não foi possível calcular a rota real. Verifique os endereços.",
+      });
+    }
   };
 
   // Update collection address when user data is available
@@ -240,7 +273,7 @@ export default function Dashboard() {
                               placeholder="Av. B, 456 - Bairro" 
                               {...field} 
                               className="pl-9" 
-                              onBlur={(e) => simularCalculoRota(e.target.value)}
+                              onBlur={(e) => calcularRotaReal(e.target.value)}
                             />
                           </div>
                         </FormControl>
