@@ -38,6 +38,8 @@ export default function Dashboard() {
     defaultValues: {
       collectionAddress: user?.storeAddress || "",
       deliveryAddress: "",
+      customerName: "",
+      customerPhone: "",
       packageDetails: "",
       price: 10,
     },
@@ -114,6 +116,7 @@ export default function Dashboard() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending": return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+      case "ready": return "bg-green-500/10 text-green-500 border-green-500/20";
       case "accepted": return "bg-blue-500/10 text-blue-500 border-blue-500/20";
       case "picked_up": return "bg-purple-500/10 text-purple-500 border-purple-500/20";
       case "delivered": return "bg-green-500/10 text-green-500 border-green-500/20";
@@ -124,10 +127,28 @@ export default function Dashboard() {
   const getStatusText = (status: string) => {
     switch (status) {
       case "pending": return "Pendente";
+      case "ready": return "Pronto";
       case "accepted": return "Aceito";
       case "picked_up": return "Em Trânsito";
       case "delivered": return "Entregue";
       default: return status;
+    }
+  };
+
+  const updateStatus = async (id: number, status: string) => {
+    try {
+      await apiRequest("PATCH", `/api/orders/${id}/status`, { status });
+      queryClient.invalidateQueries({ queryKey: [api.orders.list.path] });
+      toast({
+        title: "Status Atualizado!",
+        description: `Pedido marcado como ${getStatusText(status).toLowerCase()}.`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao atualizar status",
+        description: error.message,
+      });
     }
   };
 
@@ -191,6 +212,40 @@ export default function Dashboard() {
                       </FormItem>
                     )}
                   />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="customerName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome do Cliente</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input placeholder="Nome Completo" {...field} className="pl-9" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="customerPhone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Telefone</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input placeholder="(11) 99999-9999" {...field} className="pl-9" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                   <FormField
                     control={form.control}
                     name="packageDetails"
@@ -241,7 +296,7 @@ export default function Dashboard() {
                   <TableRow className="hover:bg-transparent border-border/50">
                     <TableHead className="w-[100px]">Pedido #</TableHead>
                     <TableHead>Cód. Coleta</TableHead>
-                    <TableHead>Detalhes</TableHead>
+                    <TableHead>Cliente</TableHead>
                     <TableHead>Rota</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead className="text-right">Status</TableHead>
@@ -270,9 +325,14 @@ export default function Dashboard() {
                           {order.collectionCode}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Package className="h-4 w-4 text-primary" />
-                            <span className="font-medium">{order.packageDetails}</span>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-primary" />
+                              <span className="font-medium">{order.customerName}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground ml-6">
+                              {order.customerPhone}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -281,7 +341,7 @@ export default function Dashboard() {
                               <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                               {order.collectionAddress}
                             </span>
-                            <span className="text-foreground flex items-center gap-1.5">
+                            <span className="text-foreground flex items-center gap-1.5 font-medium">
                               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                               {order.deliveryAddress}
                             </span>
@@ -290,7 +350,17 @@ export default function Dashboard() {
                         <TableCell className="text-muted-foreground text-sm">
                           {order.createdAt && format(new Date(order.createdAt), "dd MMM, HH:mm", { locale: ptBR })}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right space-x-2">
+                          {order.status === 'pending' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-8 border-green-500/50 text-green-500 hover:bg-green-500/10"
+                              onClick={() => updateStatus(order.id, 'ready')}
+                            >
+                              Marcar como Pronto
+                            </Button>
+                          )}
                           <Badge variant="outline" className={`${getStatusColor(order.status)} border capitalize`}>
                             {getStatusText(order.status)}
                           </Badge>

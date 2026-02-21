@@ -1,6 +1,6 @@
 import { InsertUser, User, InsertOrder, Order, InsertDeposit, Deposit, users, orders, deposits } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -52,7 +52,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOrders(merchantId: number): Promise<Order[]> {
-    return await db.select().from(orders).where(eq(orders.merchantId, merchantId));
+    return await db.select().from(orders).where(eq(orders.merchantId, merchantId)).orderBy(desc(orders.createdAt));
   }
 
   async createOrder(order: InsertOrder & { merchantId: number; price: number; driverPrice: number; distanceKm?: number }): Promise<Order> {

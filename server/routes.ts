@@ -196,7 +196,7 @@ export async function registerRoutes(
 
       // Generate 4-digit order number and collection code
       const orderNumber = Math.floor(1000 + Math.random() * 9000).toString();
-      const collectionCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const collectionCode = Math.floor(1000 + Math.random() * 9000).toString();
 
       const order = await storage.createOrder({
         ...input,
@@ -218,6 +218,17 @@ export async function registerRoutes(
   app.get(api.orders.list.path, requireAuth, async (req, res) => {
     const orders = await storage.getOrders((req.user as any).id);
     res.status(200).json(orders);
+  });
+
+  app.patch(api.orders.updateStatus.path, requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = api.orders.updateStatus.input.parse(req.body);
+      const order = await storage.updateOrderStatus(parseInt(id), status);
+      res.status(200).json(order);
+    } catch (err) {
+      res.status(400).json({ message: 'Invalid request' });
+    }
   });
 
   return httpServer;

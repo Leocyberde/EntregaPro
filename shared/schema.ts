@@ -21,7 +21,9 @@ export const orders = pgTable("orders", {
   collectionAddress: text("collection_address").notNull(),
   deliveryAddress: text("delivery_address").notNull(),
   packageDetails: text("package_details").notNull(),
-  status: text("status").notNull().default('pending'), // pending, accepted, picked_up, delivered
+  customerName: text("customer_name").notNull().default(""),
+  customerPhone: text("customer_phone").notNull().default(""),
+  status: text("status").notNull().default('pending'), // pending, ready, accepted, picked_up, delivered
   price: integer("price").notNull(), // Price charged to merchant (in cents/credits)
   driverPrice: integer("driver_price").notNull(), // Price paid to driver (in cents/credits)
   distanceKm: integer("distance_km"), // Calculated distance

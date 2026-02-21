@@ -101,6 +101,16 @@ export const api = {
         200: z.array(z.custom<typeof orders.$inferSelect>()),
         401: errorSchemas.unauthorized,
       }
+    },
+    updateStatus: {
+      method: 'PATCH' as const,
+      path: '/api/orders/:id/status' as const,
+      input: z.object({ status: z.string() }),
+      responses: {
+        200: z.custom<typeof orders.$inferSelect>(),
+        401: errorSchemas.unauthorized,
+        404: errorSchemas.notFound,
+      }
     }
   }
 };
