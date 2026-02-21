@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertUserSchema, insertOrderSchema, users, orders, deposits } from './schema';
+import { insertUserSchema, insertOrderSchema, updateProfileSchema, users, orders, deposits } from './schema';
 
 export const errorSchemas = {
   validation: z.object({ message: z.string(), field: z.string().optional() }),
@@ -42,6 +42,16 @@ export const api = {
       path: '/api/auth/logout' as const,
       responses: {
         200: z.object({ message: z.string() }),
+      }
+    },
+    updateProfile: {
+      method: 'PATCH' as const,
+      path: '/api/user/profile' as const,
+      input: updateProfileSchema,
+      responses: {
+        200: z.custom<typeof users.$inferSelect>(),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
       }
     }
   },

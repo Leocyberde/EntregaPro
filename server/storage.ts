@@ -7,6 +7,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserCredits(id: number, credits: number): Promise<User>;
+  updateUserProfile(id: number, profile: { storeAddress?: string; password?: string }): Promise<User>;
 
   getOrders(merchantId: number): Promise<Order[]>;
   createOrder(order: InsertOrder & { merchantId: number; price: number; driverPrice: number; distanceKm?: number }): Promise<Order>;
@@ -42,6 +43,14 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async updateUserProfile(id: number, profile: { storeAddress?: string; password?: string }): Promise<User> {
+    const [user] = await db.update(users)
+      .set(profile)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
   async getOrders(merchantId: number): Promise<Order[]> {
     return await db.select().from(orders).where(eq(orders.merchantId, merchantId));
   }
@@ -68,8 +77,14 @@ export class DatabaseStorage implements IStorage {
     return deposit;
   }
 
-  async createDeposit(deposit: InsertDeposit & { merchantId: number }): Promise<Deposit> {
-    const [newDeposit] = await db.insert(deposits).values(deposit).returning();
+  async createDeposit(deposit: any): Promise<Deposit> {
+    const pixQrCode = `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=`;
+    const pixPayload = `00020101021226...MOCK_PAYLOAD_${Date.now()}`;
+    const [newDeposit] = await db.insert(deposits).values({
+      ...deposit,
+      pixQrCode,
+      pixPayload
+    }).returning();
     return newDeposit;
   }
 

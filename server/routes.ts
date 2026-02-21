@@ -88,6 +88,29 @@ export async function registerRoutes(
     });
   });
 
+  app.patch(api.auth.updateProfile.path, requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const input = api.auth.updateProfile.input.parse(req.body);
+
+      if (input.newPassword) {
+        if (user.password !== input.currentPassword) {
+          return res.status(400).json({ message: 'Senha atual incorreta', field: 'currentPassword' });
+        }
+      }
+
+      const updatedUser = await storage.updateUserProfile(user.id, {
+        storeAddress: input.storeAddress,
+        password: input.newPassword || undefined
+      });
+
+      res.status(200).json(updatedUser);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: 'Internal error' });
+    }
+  });
+
   // Deposits
   app.post(api.deposits.create.path, requireAuth, async (req, res) => {
     try {
@@ -102,9 +125,7 @@ export async function registerRoutes(
         merchantId: user.id,
         amount: input.amount,
         credits: input.credits,
-        pixQrCode,
-        pixPayload
-      });
+      } as any);
 
       res.status(201).json(deposit);
     } catch (err) {
@@ -173,12 +194,18 @@ export async function registerRoutes(
       // Deduct credits
       await storage.updateUserCredits(user.id, user.credits - priceInCredits);
 
+      // Generate 4-digit order number and collection code
+      const orderNumber = Math.floor(1000 + Math.random() * 9000).toString();
+      const collectionCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
       const order = await storage.createOrder({
         ...input,
         merchantId: user.id,
         price: priceInCredits,
         driverPrice: driverPriceInCredits,
-        distanceKm
+        distanceKm,
+        orderNumber,
+        collectionCode
       });
 
       res.status(201).json(order);

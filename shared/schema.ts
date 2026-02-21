@@ -25,6 +25,8 @@ export const orders = pgTable("orders", {
   price: integer("price").notNull(), // Price charged to merchant (in cents/credits)
   driverPrice: integer("driver_price").notNull(), // Price paid to driver (in cents/credits)
   distanceKm: integer("distance_km"), // Calculated distance
+  orderNumber: text("order_number").notNull().default("0000"), // 4-digit order number
+  collectionCode: text("collection_code").notNull().default("000000"), // Collection code
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -64,6 +66,17 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, credi
 });
 export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, merchantId: true, status: true, createdAt: true, driverPrice: true, price: true, distanceKm: true });
 export const insertDepositSchema = createInsertSchema(deposits).omit({ id: true, merchantId: true, status: true, pixQrCode: true, pixPayload: true, createdAt: true });
+export const updateProfileSchema = z.object({
+  storeAddress: z.string().min(1, "Endereço é obrigatório"),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().min(6, "Nova senha deve ter pelo menos 6 caracteres").optional(),
+}).refine(data => {
+  if (data.newPassword && !data.currentPassword) return false;
+  return true;
+}, {
+  message: "Senha atual é necessária para definir uma nova senha",
+  path: ["currentPassword"]
+});
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
