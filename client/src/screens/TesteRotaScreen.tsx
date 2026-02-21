@@ -30,7 +30,7 @@ export default function TesteRotaScreen() {
 
           <div className="pt-4 border-t border-border">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-muted-foreground">Distância (Real Simulada):</span>
+              <span className="text-muted-foreground">Distância:</span>
               <span className="font-bold text-lg" data-testid="text-distance">
                 {distancia.toFixed(2)} km
               </span>
@@ -44,7 +44,7 @@ export default function TesteRotaScreen() {
           </div>
 
           <div className="bg-muted p-3 rounded-md text-xs text-muted-foreground italic">
-            * Cálculo baseado na fórmula de Haversine com fator de 1.3x para rotas reais.
+            * Cálculo baseado na fórmula de Haversine para distância direta.
             Regra: R$ 10 até 5km + R$ 2 por km adicional.
           </div>
         </CardContent>

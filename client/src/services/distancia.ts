@@ -14,8 +14,8 @@ export const calcularDistancia = (lat1: number, lon1: number, lat2: number, lon2
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distanciaBase = R * c;
 
-  // Multiplicar por 1.3 para simular rota real conforme pedido
-  return distanciaBase * 1.3;
+  // Retorna a distância direta (Haversine)
+  return distanciaBase;
 };
 
 /**
