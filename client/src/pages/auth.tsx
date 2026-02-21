@@ -13,23 +13,32 @@ import { useToast } from "@/hooks/use-toast";
 
 type AuthMode = "login" | "register";
 
-const formSchema = insertUserSchema;
-
 export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>("login");
   const { mutate: login, isPending: isLoginPending } = useLogin();
   const { mutate: register, isPending: isRegisterPending } = useRegister();
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const loginSchema = z.object({
+    username: z.string().min(1, "CPF é obrigatório"),
+    password: z.string().min(1, "Senha é obrigatória"),
+  });
+
+  const registerSchema = insertUserSchema;
+
+  const form = useForm<z.infer<typeof registerSchema>>({
+    resolver: zodResolver(mode === "login" ? loginSchema : registerSchema),
     defaultValues: {
       username: "",
       password: "",
+      cnpjOrCpf: "",
+      phone: "",
+      storeName: "",
+      storeAddress: "",
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: any) {
     const action = mode === "login" ? login : register;
     action(values, {
       onError: (error) => {
@@ -45,8 +54,7 @@ export default function AuthPage() {
   const isPending = isLoginPending || isRegisterPending;
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background relative overflow-hidden">
-      {/* Abstract Background Shapes */}
+    <div className="min-h-screen w-full flex items-center justify-center bg-background relative overflow-hidden p-4">
       <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
 
@@ -60,8 +68,8 @@ export default function AuthPage() {
           </CardTitle>
           <CardDescription className="text-base">
             {mode === "login" 
-              ? "Entre para gerenciar suas entregas" 
-              : "Comece a enviar seus pedidos hoje mesmo"}
+              ? "Entre com seu CPF para gerenciar entregas" 
+              : "Preencha os dados da sua loja para começar"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -72,14 +80,72 @@ export default function AuthPage() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Usuário</FormLabel>
+                    <FormLabel>{mode === "login" ? "CPF" : "CPF (Login)"}</FormLabel>
                     <FormControl>
-                      <Input placeholder="seu_usuario" {...field} className="bg-background/50 h-11" />
+                      <Input placeholder="000.000.000-00" {...field} className="bg-background/50 h-11" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {mode === "register" && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="cnpjOrCpf"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>CNPJ ou CPF (Faturamento)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="CNPJ ou CPF" {...field} className="bg-background/50 h-11" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="storeName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome da Loja</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nome do seu comércio" {...field} className="bg-background/50 h-11" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Telefone (WhatsApp/Ligação)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(00) 00000-0000" {...field} className="bg-background/50 h-11" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="storeAddress"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Endereço da Loja</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Rua, número, bairro, cidade" {...field} className="bg-background/50 h-11" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+
               <FormField
                 control={form.control}
                 name="password"
@@ -102,7 +168,10 @@ export default function AuthPage() {
           
           <div className="mt-6 text-center">
             <button
-              onClick={() => setMode(mode === "login" ? "register" : "login")}
+              onClick={() => {
+                setMode(mode === "login" ? "register" : "login");
+                form.reset();
+              }}
               className="text-sm text-muted-foreground hover:text-primary transition-colors hover:underline"
             >
               {mode === "login" 
